@@ -1,26 +1,42 @@
-import 'package:app_wallpaper/CategoriesPage.dart';
 import 'package:app_wallpaper/WallpaperTile.dart';
-import 'package:app_wallpaper/settingpage.dart';
+import 'package:app_wallpaper/wallpaper_detail_page.dart';
 import 'package:flutter/material.dart';
 import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
-import 'package:provider/provider.dart';
-import 'favorites_provider.dart'; // Import your provider
-import 'favorites_page.dart';
 import 'package:http/http.dart' as http;
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:convert';
 
+const String appUrl = 'https://play.google.com/store/apps/details?id=com.nourdin_mellasse_deku_app_wallpaper';
+
+Future<void> _launchUrl(String url) async {
+  final Uri uri = Uri.parse(url);
+  if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+    throw Exception('Could not launch $url');
+  }
+}
+
+void _showSnackBar(BuildContext context, String message) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text(message)),
+  );
+}
+
 class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
   @override
   _HomePageState createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  Future<void> _handleRefresh() async{
-    return await Future.delayed(Duration(seconds: 2));
-  }
-  List<String> home_images = [];
+  List<String> homeImages = [];
   bool isLoading = true;
-  int _selectedIndex = 0;
+
+  Future<void> _handleRefresh() async {
+    await Future.delayed(const Duration(seconds: 2));
+    fetchImages(); // Fetch images again on refresh
+  }
 
   @override
   void initState() {
@@ -31,11 +47,12 @@ class _HomePageState extends State<HomePage> {
   Future<void> fetchImages() async {
     try {
       final response = await http.get(Uri.parse(
-          'https://raw.githubusercontent.com/Dekukunn/wallpaper/refs/heads/main/wallpaper'));
+          'https://raw.githubusercontent.com/Dekukunn/Glitter_wallpaper/refs/heads/main/Glitter_wallpaper'));
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
         setState(() {
-          home_images = List<String>.from(data['home_images']);
+          homeImages = List<String>.from(data['home_images']);
+          homeImages.shuffle();
           isLoading = false;
         });
       } else {
@@ -49,116 +66,184 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-
-    if (index == 1) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => CategoriesPage()),
-      );
-    } else if (index == 2) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => FavoritesPage()),
-      );
-    } else if (index == 3) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => SettingsScreen()),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final favoritesProvider =
-        Provider.of<FavoritesProvider>(context); 
-
     return SafeArea(
-        child: Scaffold(
-      appBar: AppBar(
-        title: ShaderMask(
-          shaderCallback: (bounds) => LinearGradient(
-            colors: [
-              Colors.green.shade100,
-              Colors.green.shade500,
-              Colors.green.shade900,
-            ],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ).createShader(bounds),
-          child: const Text(
-            'WallNeku',
-            style: TextStyle(
-              fontSize: 40,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+      child: Scaffold(
+          backgroundColor: const Color.fromARGB(255, 24, 24, 24),
+
+        appBar: AppBar(
+          backgroundColor: const Color.fromARGB(255, 24, 24, 24),
+          leading: Builder(
+            builder: (context) {
+              return IconButton(
+                icon: const Icon(
+                  Icons.menu,
+                  color: Colors.white,
+                  size: 30,
+                ),
+                onPressed: () {
+                  Scaffold.of(context).openDrawer();
+                },
+              );
+            },
+          ),
+          title: ShaderMask(
+            shaderCallback: (bounds) => LinearGradient(
+              colors: [
+                Colors.green.shade100,
+                Colors.green.shade500,
+                Colors.green.shade900,
+              ],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ).createShader(bounds),
+            child: const Text(
+              'Glitter Wallpaper',
+              style: TextStyle(
+                fontSize: 30,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
           ),
         ),
-      ),
-      body: LiquidPullToRefresh(
-        color: Colors.black12,
-        backgroundColor: Colors.green,
-        onRefresh: _handleRefresh,
-        height: 200,
-        animSpeedFactor: 2,
-        showChildOpacityTransition: false,
-        child: isLoading
-            ? Center(child: CircularProgressIndicator(color: Colors.green,))
-            : home_images.isEmpty
-                ? Center(child: Text('No images available'))
-                : Padding(
-                  padding: const EdgeInsets.only(left: 2,right: 2),
-                  child: GridView.builder(
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 3,
-                        mainAxisSpacing: 3,
-                        childAspectRatio: 0.5,
-                      ),
-                      itemCount: home_images.length,
-                      itemBuilder: (context, index) {
-                        return WallpaperTile1(
-                          imageUrl: home_images[index],
-                          title: 'Wallpaper ${index + 1}',
-                          isFavorite: favoritesProvider.isFavorite(
-                              home_images[index]), // Check if wallpaper is favorite
-                          onFavoriteToggle: () => favoritesProvider.toggleFavorite(
-                              home_images[
-                                  index]), // Use provider to toggle favorite
-                        );
-                      },
-                    ),
+        drawer: Drawer(
+          backgroundColor: const Color.fromARGB(255, 24, 24, 24),
+          child: ListView(
+            children: [
+              const DrawerHeader(
+                decoration: BoxDecoration(
+                  color: Color.fromARGB(255, 24, 24, 24),
                 ),
+                child: Text(
+                  'Glitter Wallpaper',
+                  style: TextStyle(color: Colors.green, fontSize: 25),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.info_outline, color: Colors.white),
+                title: const Text(
+                  'About',
+                  style: TextStyle(color: Colors.white),
+                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const AboutPage()),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.star_border_outlined, color: Colors.white),
+                title: const Text(
+                  'Rate App',
+                  style: TextStyle(color: Colors.white),
+                ),
+                onTap: () async {
+                  try {
+                    await _launchUrl(appUrl);
+                  } catch (e) {
+                    _showSnackBar(context, 'Could not open the app store.');
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.share, color: Colors.white),
+                title: const Text(
+                  'Share App',
+                  style: TextStyle(color: Colors.white),
+                ),
+                onTap: () {
+                  Share.share('Check out this awesome app: $appUrl');
+                },
+              ),
+            ],
+          ),
+        ),
+        body: Stack(
+          children: [
+            LiquidPullToRefresh(
+              color: Colors.black12,
+              backgroundColor: Colors.green,
+              onRefresh: _handleRefresh,
+              height: 200,
+              animSpeedFactor: 2,
+              showChildOpacityTransition: false,
+              child: isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(color: Colors.green))
+                  : homeImages.isEmpty
+                      ? const Center(child: Text('No images available'))
+                      : Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: GridView.builder(
+                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 7,
+                              mainAxisSpacing: 7,
+                              childAspectRatio: 0.7,
+                            ),
+                            itemCount: homeImages.length,
+                            itemBuilder: (context, index) {
+                              return GestureDetector(
+                                onTap: () {
+                                          print(homeImages);
+
+                                },
+                                child: Image.network(homeImages[index], fit: BoxFit.cover),
+                              );
+                            },
+                          ),
+                        ),
+            ),
+          ],
+        ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.green,
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_filled, size: 30),
-            label: '',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.grid_view, size: 30),
-            label: '',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.favorite, size: 30),
-            label: '',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings, size: 30),
-            label: '',
-          ),
-        ],
+    );
+  }
+}
+
+class AboutPage extends StatelessWidget {
+  const AboutPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color.fromARGB(255, 24, 24, 24),
+      appBar: AppBar(
+        backgroundColor: const Color.fromARGB(255, 24, 24, 24),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: const Text(
+          'About Us',
+          style: TextStyle(color: Colors.white),
+        ),
       ),
-    ));
+      body: const Padding(
+        padding: EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'About This App',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+            ),
+            SizedBox(height: 16),
+            Text(
+              'This app is designed to provide amazing wallpapers for your device. Enjoy high-quality images that enhance your home screen experience. With user-friendly navigation and regular updates, you’ll always find fresh and stunning wallpapers to personalize your device.',
+              style: TextStyle(fontSize: 16, color: Colors.white),
+            ),
+            SizedBox(height: 16),
+            Text('Version: 1.0.0', style: TextStyle(fontSize: 16, color: Colors.white)),
+            SizedBox(height: 16),
+            Text('Developed by Noureddine Mellasse',
+                style: TextStyle(fontSize: 16, color: Colors.white)),
+          ],
+        ),
+      ),
+    );
   }
 }

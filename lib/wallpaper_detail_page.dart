@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:app_wallpaper/favorites_provider.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -10,14 +9,11 @@ import 'package:flutter_wallpaper_manager/flutter_wallpaper_manager.dart';
 
 class WallpaperDetailPage extends StatefulWidget {
   final String imageUrl;
-  final bool isInitiallyFavorite;
-  final VoidCallback onFavoriteToggle;
 
   const WallpaperDetailPage({
     Key? key,
-    required this.imageUrl,
-    required this.isInitiallyFavorite,
-    required this.onFavoriteToggle,
+    required this.imageUrl, required String wallpaperUrl,
+
   }) : super(key: key);
 
   @override
@@ -25,14 +21,8 @@ class WallpaperDetailPage extends StatefulWidget {
 }
 
 class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
-  late bool isFavorite;
   File? _downloadedImage;
 
-  @override
-  void initState() {
-    super.initState();
-    isFavorite = widget.isInitiallyFavorite;
-  }
 
   Future<void> _requestPermission() async {
     if (await Permission.storage.request().isGranted) {
@@ -142,7 +132,6 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final favoritesProvider = Provider.of<FavoritesProvider>(context);
 
     return SafeArea(
       child: Scaffold(

@@ -5,16 +5,12 @@ import 'package:like_button/like_button.dart';
 
 class WallpaperTile1 extends StatelessWidget {
   final String imageUrl;
-  final String title;
-  final bool isFavorite;
-  final VoidCallback onFavoriteToggle;
+
 
   const WallpaperTile1({
     Key? key,
-    required this.imageUrl,
-    required this.title,
-    required this.isFavorite,
-    required this.onFavoriteToggle,
+    required this.imageUrl, required String wallpaperUrl,
+
   }) : super(key: key);
 
   @override
@@ -25,9 +21,8 @@ class WallpaperTile1 extends StatelessWidget {
           context,
           MaterialPageRoute(
             builder: (context) => WallpaperDetailPage(
-              imageUrl: imageUrl,
-              isInitiallyFavorite: isFavorite,
-              onFavoriteToggle: onFavoriteToggle,
+              imageUrl: imageUrl, wallpaperUrl: '',
+ 
             ),
           ),
         );
@@ -44,31 +39,7 @@ class WallpaperTile1 extends StatelessWidget {
               placeholder: (context, url) => Center(child: CircularProgressIndicator()),
               errorWidget: (context, url, error) => Icon(Icons.error),
             ),
-            Positioned(
-              top: 10,
-              right: 10,
-              child: LikeButton(
-                size: 35,
-                isLiked: isFavorite,
-                onTap: (isLiked) async {
-                  // Toggle favorite status
-                  onFavoriteToggle();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(isLiked ? 'Removed from favorites' : 'Added to favorites'),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                  return !isLiked; // Return the new favorite status
-                },
-                likeBuilder: (isLiked) {
-                  return Icon(
-                    isLiked ? Icons.favorite : Icons.favorite,
-                    color: isLiked ? Colors.red : Colors.white,
-                  );
-                },
-              ),
-            ),
+  
           ],
         ),
       ),
