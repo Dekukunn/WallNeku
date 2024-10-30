@@ -1,70 +1,63 @@
+// ignore_for_file: library_private_types_in_public_api, file_names
+
 import 'package:app_wallpaper/home_page.dart';
 import 'package:flutter/material.dart';
-class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+import 'package:video_player/video_player.dart';
+import 'package:chewie/chewie.dart';
+
+class SplashScreenPage extends StatefulWidget {
+  const SplashScreenPage({Key? key}) : super(key: key);
 
   @override
-  _SplashScreenState createState() => _SplashScreenState();
+  _SplashScreenPageState createState() => _SplashScreenPageState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenPageState extends State<SplashScreenPage> {
+  final int _splashDuration = 5; // Duration of the splash screen in seconds
+  late VideoPlayerController _videoPlayerController;
+  late ChewieController _chewieController;
+
   @override
   void initState() {
     super.initState();
-    _navigateToWallpaperHomePage();
+    _initializeVideoPlayer();
+    Future.delayed(Duration(seconds: _splashDuration), () {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => HomePage()),
+      );
+    });
   }
 
-  _navigateToWallpaperHomePage() async {
-    await Future.delayed(const Duration(seconds: 3), () {});
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => HomePage()),
+  @override
+  void dispose() {
+    _chewieController.dispose();
+    _videoPlayerController.dispose();
+    super.dispose();
+  }
+
+  void _initializeVideoPlayer() {
+    _videoPlayerController = VideoPlayerController.asset('assets/images/Glitter.mp4');
+    _chewieController = ChewieController(
+      videoPlayerController: _videoPlayerController,
+      autoPlay: true,
+      looping: false,
+      showControls: false,
+      aspectRatio: 9 / 16,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
-    
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color.fromARGB(255, 23, 24, 23),
-              Color.fromARGB(255, 23, 24, 23),
-            ],
+      backgroundColor: Colors.black,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Chewie(
+            controller: _chewieController,
           ),
-        ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const SizedBox(height: 20),
-              ShaderMask(
-                shaderCallback: (bounds) => LinearGradient(
-                  colors: [
-                    Colors.green.shade100,
-                    Colors.green.shade600,
-                    Colors.green.shade900,
-                  ],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ).createShader(bounds),
-                child: const Text(
-                  'WallNeku',
-                  style: TextStyle(
-                    fontSize: 75,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
+        ],
       ),
     );
   }

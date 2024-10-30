@@ -1,13 +1,12 @@
-import 'package:app_wallpaper/WallpaperTile.dart';
 import 'package:app_wallpaper/wallpaper_detail_page.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
 import 'package:http/http.dart' as http;
 import 'package:share_plus/share_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'dart:convert';
-
-const String appUrl = 'https://play.google.com/store/apps/details?id=com.nourdin_mellasse_deku_app_wallpaper';
+import 'package:url_launcher/url_launcher.dart';
 
 Future<void> _launchUrl(String url) async {
   final Uri uri = Uri.parse(url);
@@ -30,6 +29,9 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  final ScrollController _scrollController = ScrollController();
+  bool _isAppBarVisible = true;
+
   List<String> homeImages = [];
   bool isLoading = true;
 
@@ -42,12 +44,13 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     fetchImages();
+    _scrollController.addListener(_handleScroll);
   }
 
   Future<void> fetchImages() async {
     try {
       final response = await http.get(Uri.parse(
-          'https://raw.githubusercontent.com/Dekukunn/Glitter_wallpaper/refs/heads/main/Glitter_wallpaper'));
+          'https://raw.githubusercontent.com/Dekukunn/Glitter_wallpaper/main/Glitter_wallpaper'));
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
         setState(() {
@@ -66,139 +69,212 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-          backgroundColor: const Color.fromARGB(255, 24, 24, 24),
+  void _handleScroll() {
+    final userScrollDirection = _scrollController.position.userScrollDirection;
+    if (userScrollDirection == ScrollDirection.reverse && _isAppBarVisible) {
+      setState(() => _isAppBarVisible = false);
+    } else if (userScrollDirection == ScrollDirection.forward &&
+        !_isAppBarVisible) {
+      setState(() => _isAppBarVisible = true);
+    }
+  }
 
-        appBar: AppBar(
-          backgroundColor: const Color.fromARGB(255, 24, 24, 24),
-          leading: Builder(
-            builder: (context) {
-              return IconButton(
-                icon: const Icon(
-                  Icons.menu,
-                  color: Colors.white,
-                  size: 30,
-                ),
-                onPressed: () {
-                  Scaffold.of(context).openDrawer();
-                },
-              );
-            },
-          ),
-          title: ShaderMask(
-            shaderCallback: (bounds) => LinearGradient(
-              colors: [
-                Colors.green.shade100,
-                Colors.green.shade500,
-                Colors.green.shade900,
-              ],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ).createShader(bounds),
-            child: const Text(
-              'Glitter Wallpaper',
-              style: TextStyle(
-                fontSize: 30,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  PreferredSizeWidget _buildAppBar() {
+    return _isAppBarVisible
+        ? AppBar(
+            backgroundColor: Colors.black,
+            centerTitle: true,
+            title: SizedBox(
+              height: 65,
+              child: Image.asset(
+                "assets/images/bar.png",
+                fit: BoxFit.contain,
               ),
             ),
+          )
+        : PreferredSize(
+            preferredSize: const Size.fromHeight(0), child: Container());
+  }
+
+  Widget _buildDrawer() {
+    return Drawer(
+      backgroundColor: Colors.black,
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          const SizedBox(height: 30),
+          Padding(
+            padding: const EdgeInsets.only(right: 40.0, top: 40, left: 20),
+            child: Image.asset(
+              'assets/images/bar.png',
+            ),
           ),
-        ),
-        drawer: Drawer(
-          backgroundColor: const Color.fromARGB(255, 24, 24, 24),
-          child: ListView(
+          const SizedBox(height: 20),
+          Row(
             children: [
-              const DrawerHeader(
-                decoration: BoxDecoration(
-                  color: Color.fromARGB(255, 24, 24, 24),
-                ),
-                child: Text(
-                  'Glitter Wallpaper',
-                  style: TextStyle(color: Colors.green, fontSize: 25),
-                ),
-              ),
-              ListTile(
-                leading: const Icon(Icons.info_outline, color: Colors.white),
-                title: const Text(
-                  'About',
-                  style: TextStyle(color: Colors.white),
-                ),
-                onTap: () {
+              IconButton(
+                color: Colors.white,
+                icon: const Icon(Icons.info),
+                onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const AboutPage()),
+                    MaterialPageRoute(builder: (context) => AboutPage()),
                   );
                 },
               ),
-              ListTile(
-                leading: const Icon(Icons.star_border_outlined, color: Colors.white),
-                title: const Text(
-                  'Rate App',
-                  style: TextStyle(color: Colors.white),
+              Container(
+                width: 250,
+                child: InkWell(
+                  splashColor: Colors.green,
+                  child: const Text('About',
+                      style: TextStyle(color: Colors.white)),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => AboutPage()),
+                    );
+                  },
                 ),
-                onTap: () async {
-                  try {
-                    await _launchUrl(appUrl);
-                  } catch (e) {
-                    _showSnackBar(context, 'Could not open the app store.');
-                  }
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.share, color: Colors.white),
-                title: const Text(
-                  'Share App',
-                  style: TextStyle(color: Colors.white),
-                ),
-                onTap: () {
-                  Share.share('Check out this awesome app: $appUrl');
-                },
               ),
             ],
           ),
-        ),
-        body: Stack(
-          children: [
-            LiquidPullToRefresh(
-              color: Colors.black12,
-              backgroundColor: Colors.green,
-              onRefresh: _handleRefresh,
-              height: 200,
-              animSpeedFactor: 2,
-              showChildOpacityTransition: false,
-              child: isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(color: Colors.green))
-                  : homeImages.isEmpty
-                      ? const Center(child: Text('No images available'))
-                      : Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: GridView.builder(
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: 7,
-                              mainAxisSpacing: 7,
-                              childAspectRatio: 0.7,
-                            ),
-                            itemCount: homeImages.length,
-                            itemBuilder: (context, index) {
-                              return GestureDetector(
-                                onTap: () {
-                                          print(homeImages);
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              IconButton(
+                color: Colors.white,
+                icon: const Icon(Icons.star_rate),
+                onPressed: () async {
+                  const url =
+                      'https://play.google.com/store/apps/details?id=com.Nourdine_mellasse_Glitter_Wallpaper';
+                  _launchUrl(url);
+                },
+              ),
+              Container(
+                width: 250,
+                child: InkWell(
+                  splashColor: Colors.green,
+                  child: const Text('Rate App',
+                      style: TextStyle(color: Colors.white)),
+                  onTap: () async {
+                    const url =
+                        'https://play.google.com/store/apps/details?id=com.Nourdine_mellasse_Glitter_Wallpaper';
+                    _launchUrl(url);
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              IconButton(
+                color: Colors.white,
+                icon: const Icon(Icons.share),
+                onPressed: () {
+                  Share.share(
+                      'Check out this awesome app: https://play.google.com/store/apps/details?id=com.Nourdine_mellasse_Glitter_Wallpaper');
+                },
+              ),
+              Container(
+                width: 250,
+                child: InkWell(
+                  splashColor: Colors.green,
+                  child: const Text('Share App',
+                      style: TextStyle(color: Colors.white)),
+                  onTap: () {
+                    Share.share(
+                        'Check out this awesome app: https://play.google.com/store/apps/details?id=com.Nourdine_mellasse_Glitter_Wallpaper');
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 
-                                },
-                                child: Image.network(homeImages[index], fit: BoxFit.cover),
-                              );
-                            },
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      resizeToAvoidBottomInset: true,
+      backgroundColor: Colors.black,
+      appBar: _buildAppBar(),
+      drawer: _buildDrawer(),
+      body: Stack(
+        children: [
+          LiquidPullToRefresh(
+            color: Colors.black12,
+            backgroundColor: Colors.green,
+            onRefresh: _handleRefresh,
+            height: 200,
+            animSpeedFactor: 2,
+            showChildOpacityTransition: false,
+            child: isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(color: Colors.green),
+                  )
+                : homeImages.isEmpty
+                    ? const Center(
+                        child: Text('No images available',
+                            style: TextStyle(color: Colors.white)),
+                      )
+                    : Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: GridView.builder(
+                          controller: _scrollController,
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 7,
+                            mainAxisSpacing: 7,
+                            childAspectRatio: 0.7,
                           ),
+                          itemCount: homeImages.length,
+                          itemBuilder: (context, index) {
+                            final imageUrl = homeImages[index];
+                            return GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => WallpaperDetailPage(
+                                      imageUrl: imageUrl,
+                                      wallpaperUrl: imageUrl,
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.grey,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                clipBehavior: Clip.antiAlias,
+                                child: CachedNetworkImage(
+                                  imageUrl: imageUrl,
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) => Image.asset(
+                                    "assets/images/loading.jpg",
+                                    fit: BoxFit.cover,
+                                  ),
+                                  errorWidget: (context, url, error) =>
+                                      Icon(Icons.error),
+                                ),
+                              ),
+                            );
+                          },
                         ),
-            ),
-          ],
-        ),
+                      ),
+          ),
+        ],
       ),
     );
   }
@@ -229,7 +305,10 @@ class AboutPage extends StatelessWidget {
           children: [
             Text(
               'About This App',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+              style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white),
             ),
             SizedBox(height: 16),
             Text(
@@ -237,7 +316,8 @@ class AboutPage extends StatelessWidget {
               style: TextStyle(fontSize: 16, color: Colors.white),
             ),
             SizedBox(height: 16),
-            Text('Version: 1.0.0', style: TextStyle(fontSize: 16, color: Colors.white)),
+            Text('Version: 1.0.0',
+                style: TextStyle(fontSize: 16, color: Colors.white)),
             SizedBox(height: 16),
             Text('Developed by Noureddine Mellasse',
                 style: TextStyle(fontSize: 16, color: Colors.white)),

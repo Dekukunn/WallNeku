@@ -21,7 +21,7 @@ class MyApp extends StatelessWidget {
       title: 'Product & Wallpaper App',
       theme: ThemeData.light(),
       darkTheme: ThemeData.dark(),
-      home: SplashScreen(),
+      home: SplashScreenPage(),
     );
   }
 }
